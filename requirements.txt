@@ -1,5 +1,6 @@
-python=3.7
+python==3.7
 numpy==1.15
 networkx==2.3
 matplotlib==3.1
 tqdm==4
+wordfreq==2.2.1

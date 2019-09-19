@@ -97,6 +97,25 @@ def create_topic_picture(g:nx.DiGraph, topic:set, file:str, hops=2):
     dot = nx.nx_pydot.to_pydot(small_g)
     dot.write(file, prog="dot",format="png")
 
+def create_topic_picture_gradient(g:nx.DiGraph, topic:np.ndarray, file:str):
+    g = g.to_undirected(as_view=True)
+    topic = np.power(topic,1)
+    topic = topic/topic.max()
+    N = {ui:topic[ui] for ui in range(len(topic)) if topic[ui]!=0}
+    small_g = nx.Graph(g.subgraph(N))
+    
+    def rgb2hex(r,g,b):
+        return "#{:02x}{:02x}{:02x}".format(r,g,b)
+
+    for ui in small_g:
+        small_g.nodes[ui]["label"] = g.nodes[ui]["name"]
+        del small_g.nodes[ui]["name"] # necessary in order to use pydot
+        small_g.nodes[ui]["style"]="filled"
+        small_g.nodes[ui]["fillcolor"]= rgb2hex(int(topic[ui]*255),0,int(255-topic[ui]*255))
+
+    dot = nx.nx_pydot.to_pydot(small_g)
+    dot.write(file, prog="dot",format="png")
+    
 ## show plots -----------------------------------------------------------------
 def histogram(p:np.ndarray, bins):
     plot.hist(p,bins)
@@ -113,5 +132,18 @@ def KernelDensityEstimation(x:np.ndarray, n=1000):
     ifg:plot.Figure
     fig, ax = plot.subplots()
     ax.plot(X, Y, 'k.', markersize=2)
+    plot.show()
+
+
+def show_word_similarity(g1:nx.DiGraph, g2:nx.DiGraph, wordsimilarity:np.ndarray):
+    fig = plot.figure()
+    ax = fig.add_subplot()
+    cax = ax.matshow(wordsimilarity)
+    
+    x_labels = [l for u,l in g1.nodes(data="name")]
+    y_labels = [l for u,l in g2.nodes(data="name")]
+
+    #ax.set_xticklabels(x_labels)
+    #ax.set_yticklabels(y_labels)
     plot.show()
 #------------------------------------------------------------------------------

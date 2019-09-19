@@ -11,7 +11,7 @@ def low_rank_approximation(A:np.ndarray, k) -> np.ndarray:
     vh = vh[0:k-1,:]
     return np.matmul(np.matmul(u, np.diag(s)), vh)
 
-def edge_vertix_matrix(g:nx.Graph):
+def edge_vertix_matrix(g:nx.Graph): #TODO refactor for networkx
     n = g.vcount()
     m = g.ecount()
     M=np.zeros([n,m],dtype=float)
@@ -21,7 +21,7 @@ def edge_vertix_matrix(g:nx.Graph):
         M[e.target, e.index]= 1
     return M
 
-def local_maxima(g:nx.Graph, f:np.ndarray) -> np.ndarray:
+def local_maxima(g:nx.Graph, f:np.ndarray) -> np.ndarray: # TODO refactor for networkx
     m = np.zeros(g.vcount(), dtype=int)
     for v in g.vs:
         v:ig.Vertex
@@ -40,7 +40,8 @@ def compute_entropy(p:np.ndarray)->float:
     sumentropy = 0
     for pv in p:
         sumentropy += pv*np.log2(pv) if pv != 0 else 0
-    return -sumentropy #-np.sum(p*np.log2(p, where=p!=0)) # numpy BUG: 'where' with log2 is not working as intended
+    return -sumentropy 
+    #return -np.sum(p*np.log2(p, where=p!=0)) BUG: 'where' with log2 is not working as intended
 
 def kullback_leiber_divergence(p:np.ndarray, q:np.ndarray)->float:
     p = np.ma.masked_equal(p, 0, copy=False)
@@ -61,6 +62,9 @@ def cosine_similarity(p:np.ndarray, q:np.ndarray, normalize=True) -> float:
         p = p/pnorm if pnorm != 0 else p
         q = q/qnorm if qnorm != 0 else q
     return np.dot(p, q)
+
+def euclidean_distance(p:np.ndarray, q:np.ndarray) -> float:
+    return ln.norm(p-q)
 
 
 

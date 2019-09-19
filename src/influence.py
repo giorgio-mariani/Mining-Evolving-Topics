@@ -62,7 +62,7 @@ def linear_threshold_mean(
         counter += activenodes
     return counter/samples
 
-def influence_maximization(g:nx.DiGraph, k:int):
+def influence_maximization(g:nx.DiGraph, k:int): # NOTE this was implemented during the initial phase of the project, but it is not actually utilized
     seed = set()
     rank = np.array(g.pagerank(directed=False))
     for _ in range(k):
