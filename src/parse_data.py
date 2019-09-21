@@ -6,7 +6,7 @@ import tqdm
 from typing import Dict
 from typing import Tuple
 
-DATASET_LOC="../data/"
+DATASET_LOC="../data/" # TODO use script location instead of relative path
 DATA_COKEYWORDS="ds-1.tsv"
 DATA_COAUTHORS="ds-2.tsv"
 

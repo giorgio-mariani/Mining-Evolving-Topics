@@ -70,7 +70,7 @@ def find_topics_topicness(g:nx.Graph, k:int) -> np.ndarray:
         topic_influence = topic_influence/len(sources)
 
         # update loop variables
-        topic_sources.append(topic_influence)   #add topic to extracted topics
+        topic_sources.append(topic_influence)   # add topic to extracted topics
         topicness2 = np.maximum(topicness2 - topic_influence, 0)  # update topicness
 
     # compute node-topic matrix
@@ -81,6 +81,9 @@ def find_topics_topicness(g:nx.Graph, k:int) -> np.ndarray:
     return topics
 
 # ------------------------------------------------------------------------------
+'''
+OLD STUFF
+
 def find_topics_divergence(g:nx.Graph, threshold=0.6):
     """
     This function estimates the topics inside the input graph 'g' using the 
@@ -121,9 +124,6 @@ def find_topics_divergence(g:nx.Graph, threshold=0.6):
 
     #visualization.show_graphfunction(g, 1+topics.sum(axis=1), cmap="autumn")
     return topics
-
-"""
-OLD STUFF
 
 def topics_from_distances_CPM(D:np.ndarray, threshold:float=0.6) -> np.ndarray:
     vertex_count = D.size
@@ -168,7 +168,7 @@ def topics_from_distances_GN(D:np.ndarray, origin_graph) -> np.ndarray:
         for ui in tset:
             topics[ui, ti] = 1
     return topics
-"""
+'''
 
 #=========================================================================================
 def store_topics(g:nx.DiGraph, topics:np.ndarray, output_directory:str="topics", gradient_topic=True):
@@ -239,7 +239,7 @@ def task1(start, end, parent_directory="topics"):
 
 # if this module is invoked, then solve task 1
 if __name__ == "__main__":
-    task1(2016,2018)
+    task1(2015,2018)
 
 
 ###############################################################################

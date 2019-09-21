@@ -99,7 +99,7 @@ def create_topic_picture(g:nx.DiGraph, topic:set, file:str, hops=2):
 
 def create_topic_picture_gradient(g:nx.DiGraph, topic:np.ndarray, file:str):
     g = g.to_undirected(as_view=True)
-    topic = np.power(topic,1)
+    topic = np.power(topic,1/2.2)
     topic = topic/topic.max()
     N = {ui:topic[ui] for ui in range(len(topic)) if topic[ui]!=0}
     small_g = nx.Graph(g.subgraph(N))
