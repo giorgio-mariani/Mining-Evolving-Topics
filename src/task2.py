@@ -4,11 +4,16 @@ from typing import Dict
 from typing import List
 
 
+import matplotlib.pyplot as plot
 import networkx as nx
 import numpy as np
 import tqdm
 
 import visualization
+
+def _get_topic_keywords(g:nx.Graph, topic:np.ndarray) -> Dict[str,float]:
+    return {g.nodes[ui]["name"]:topic[ui] for ui in g.nodes if topic[ui] > 0}
+
 
 def load_topics(parent_directory:str="topics", topic_directory:str="last") -> Tuple[
                                                                                 Dict[int, nx.DiGraph], 
@@ -27,7 +32,7 @@ def load_topics(parent_directory:str="topics", topic_directory:str="last") -> Tu
             topic_directory=max(os.listdir(parent_directory_absolute))
         topic_directory_absolute = os.path.join(parent_directory_absolute, topic_directory)
 
-    print("loading topics ...")
+    print("opening directory "+topic_directory +".\n loading topics ...")
     for name in tqdm.tqdm(os.listdir(topic_directory_absolute)):
         year_directory_abs = os.path.join(topic_directory_absolute, name)
         if os.path.isdir(year_directory_abs):
@@ -47,45 +52,70 @@ def keyword_similarity(keyword1:str, keyword2:str) -> float:
     wordbag1 = set(keyword1.split())
     wordbag2 = set(keyword2.split())
     jaccard = len(wordbag1&wordbag2)/len(wordbag1|wordbag2)
-    return jaccard
-
-    '''
-    keyword1_words = keyword1.split()
-    keyword2_words = keyword2.split()
-    n1:int = len(keyword1_words)
-    n2:int = len(keyword2_words)
-    word_similarity = np.zeros([n1,n2])
-    for i1 in range(n1):
-        w1 = keyword1_words[i1]
-        for i2 in range(n2):
-            w2 = keyword2_words[i2]
-            word_similarity[i1,i2] = float(w1==w2)
-    sim1 = word_similarity.max(axis=1).sum()/n1
-    sim2 = word_similarity.max(axis=0).sum()/n2
-    return np.maximum(sim1,sim2)
-    '''
+    return jaccard#float(keyword1==keyword2)#
 
 def create_topic_mapping(g1:nx.DiGraph, g2:nx.DiGraph, T1:np.ndarray, T2:np.ndarray) -> list:
+    n1 = g1.number_of_nodes()
+    n2 = g2.number_of_nodes()
+    tn1 = T1.shape[1]
+    tn2 = T2.shape[1]
+
     # compute word similarity for each pair
     S = np.zeros([g1.number_of_nodes(), g2.number_of_nodes()])
     for ui in g1:
         w1 = g1.nodes[ui]["name"]
         for vi in g2:
             w2 = g2.nodes[vi]["name"]
-            S[ui,vi] =  keyword_similarity(w1,w2)
+            S[ui,vi] = keyword_similarity(w1,w2)
+    visualization.show_word_similarity(g1=g1, g2=g2, wordsimilarity=S)
 
-    #visualization.show_word_similarity(g1=g1, g2=g2, wordsimilarity=S)
+    '''
+    #jaccard similarity:
+    M_jaccard = np.zeros([tn1,tn2])
+    for ti in range(tn1):
+        nodes1 = set(_get_topic_keywords(g1,T1[:,ti]))
+        for tj in range(tn2):
+            nodes2 = set(_get_topic_keywords(g2,T2[:,tj]))
+            intersection = len(nodes1.intersection(nodes2))
+            union = len(nodes1.union(nodes2))
+            M_jaccard[ti,tj] = intersection/union if union != 0 else 0
+    '''
 
     # create mapping between topics from g1 to g2
-    M = np.transpose(T1)@S@T2     #M[t1,t2] = sum_{u,v} T1[u,t1]*T2[v,t2]*S[u,v]
-    g1_to_g2 = M.argmax(axis=1) # array containing mapping between topics in g1 to topics in g2
-    g2_to_g1 = M.argmax(axis=0) # array containing mapping between topics in g2 to topics in g1
-    mapping = []
-    for t1, t2 in enumerate(g1_to_g2):
-        mapping.append( (t1, t2, M[t1,t2]) )
+    transposedT1 = np.transpose(T1)
+    sizeT1 = transposedT1@S@np.ones([n2])
+    tmp = np.expand_dims(sizeT1,axis=1)
+    A = np.repeat(tmp, tn2, axis=1)
 
-    for t2, t1 in enumerate(g2_to_g1):
-        mapping.append( (t1, t2, M[t1,t2]) )
+    sizeT2 = np.ones([n1])@S@T2
+    tmp = np.expand_dims(sizeT2, axis=0)
+    B = np.repeat(tmp, tn2, axis=0)
+
+    AB = transposedT1@S@T2     #M[t1,t2] = sum_{u,v} T1[u,t1]*T2[v,t2]*S[u,v]
+    AUB = A+B-AB
+    M =  np.divide(AB, AUB, where=AUB!=0)
+
+    # compute mapping
+    g1_map_g2 = M.argmax(axis=1) # array containing mapping between topics in g1 to topics in g2
+    g2_map_g1 = M.argmax(axis=0) # array containing mapping between topics in g2 to topics in g1
+
+    # REMOVEME visualization of mapping ------------------------------
+    visualization.show_word_similarity(g1=g1, g2=g2, wordsimilarity=M)
+    tn1, tn2 = M.shape
+    X = np.zeros([tn1,tn2])
+    X[range(tn1), g1_map_g2] = M[range(tn1), g1_map_g2]
+    X[g2_map_g1, range(tn2)] += M[g2_map_g1, range(tn2)]
+    visualization.show_word_similarity(g1=g1, g2=g2, wordsimilarity=X)
+    #-----------------------------------------------------------------
+
+    mapping = []
+    for t1, t2 in enumerate(g1_map_g2):
+        if M[t1,t2] != 0:
+            mapping.append( (t1, t2, M[t1,t2]) )
+
+    for t2, t1 in enumerate(g2_map_g1):
+        if M[t1,t2] != 0:
+            mapping.append( (t1, t2, M[t1,t2]) )
     return mapping
 
 def create_chain(
@@ -97,9 +127,11 @@ def create_chain(
     k=3):
 
     #create output directory
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
+    if  os.path.exists(directory):
+        import shutil
+        shutil.rmtree(directory)
+    os.makedirs(directory)
+        
     # create loop variable
     path_weights = dict()
     for u, path in paths.items():
@@ -115,16 +147,16 @@ def create_chain(
     hpaths = [paths[u] for _, u in hpaths_targets]
 
     # store paths
-    for pi in reversed(range(len(hpaths))): # decreasing order
+    for pi in range(len(hpaths)): # decreasing order
         path = hpaths[pi]
-        pdirectory = os.path.join(directory, "path_"+str(pi)+".png")
+        pdirectory = os.path.join(directory, "path_"+str(len(hpaths) - pi)+".png")
         if not os.path.exists(pdirectory):
             os.makedirs(pdirectory)
         for u in path:
             y, ti = u
             g = keyword_graphs[y]
             t = keyword_topics[y][:,ti]
-            f = os.path.join(pdirectory, str(y)+".png")
+            f = os.path.join(pdirectory, str(y)+".png") 
             visualization.create_topic_picture_gradient(g=g, topic=t, file=f)
 
 def create_macro_topics():
@@ -136,8 +168,6 @@ def task2(parent_directory:str="topics", topic_directory:str="last"):
     years:List[int] = [year for year in tperyear.keys()]
     topic_DAG = nx.DiGraph()
 
-    def _get_topic_keywords(g:nx.Graph, topic:np.ndarray) -> Dict[str,float]:
-        return {g.nodes[ui]["name"]:topic[ui] for ui in g.nodes if topic[ui] > 0}
 
     def _create_DAG_nodes(g:nx.Graph, topics:np.ndarray, year:int) -> list:
         nodes_DAG = []
@@ -197,7 +227,8 @@ def task2(parent_directory:str="topics", topic_directory:str="last"):
         paths=paths,
         keyword_graphs=gperyear,
         keyword_topics=tperyear,
-        directory="chains")
+        directory="chains",
+        k=10)
 
     # compute macro topics
     #create_macro_topics(gperyear, tperyear)

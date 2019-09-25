@@ -2,6 +2,12 @@ import networkx as nx
 import numpy as np
 import numpy.linalg as ln
 
+def dictionary_to_numpy(d:dict):
+    n = len(d)
+    nparray = np.zeros([n])
+    for ui in d:
+        nparray[ui] = d[ui]
+    return nparray
 
 def low_rank_approximation(A:np.ndarray, k) -> np.ndarray:
     u, s, vh = ln.svd(
@@ -65,41 +71,4 @@ def cosine_similarity(p:np.ndarray, q:np.ndarray, normalize=True) -> float:
 
 def euclidean_distance(p:np.ndarray, q:np.ndarray) -> float:
     return ln.norm(p-q)
-
-
-
-"""
-TODO: REMOVE ME
-def swap(D, i, j, mode:str="both"):
-    if mode=="row" or mode=="both":
-        tmp = np.array(D[i,:])
-        D[i,:] = D[j,:]
-        D[j,:] = tmp 
-    if mode=="col" or mode=="both": 
-        tmp = np.array(D[:,i])
-        D[:,i] = D[:,j]
-        D[:,j] = tmp
-
-def agglomerative_clustering(distances:np.ndarray) -> np.ndarray:
-    D = np.array(D)
-    node_count, _ = D.shape
-    L = [] #np.diag(np.ones([node_count], dtype=bool))
-    
-    for m in range(node_count):
-        di = D[:m,:m].argmax()
-        ti, tj = np.unraveled_coords(
-            di, dims=(node_count, node_count))
-        
-        current_topic = node_count - m - 1
-        out_of_bounds = node_count - m
-
-        # re-order the columns and rows
-        tmp = D[tj,:]
-        swap(D, ti, current_topic) # topic at index m
-        swap(D, tj, out_of_bounds)
-        D[m, :] = np.maximum(tmp, D[m,:])
-        D[:, m] = D[m, :]
-        
-    return L
-"""
 
