@@ -20,32 +20,12 @@ def estimate_topic_influence(
     g:nx.DiGraph, topicness:np.ndarray, node_influence:np.ndarray, source_limit:int=3):
     
     # estimate topic sources
-    n = g.number_of_nodes()
-    argmax = topicness.argmax()
-    topic_influence = node_influence[argmax, :]
     topic_influence = np.power(topic_influence, 0.5)
     return topic_influence
 
 def defuzzification(topic:np.ndarray, k=6):
-    I = topic.nonzero()[0]
-    '''
-    ntopic = topic[I]
-    mean = ntopic.mean()
-
-    # compute std of values below mean
-    tmp = np.minimum(ntopic - mean, 0)
-    tmpI = tmp.nonzero()[0]
-    if tmpI.size == 0:
-        tmpnz = tmp[tmpI]
-        var = np.power(tmpnz,2).mean()
-        std = np.power(var,0.5)
-    else:
-        std = 0
-
-    # deffuzify
-    defuzzed_topic = topic >= mean - std
-    '''
-    fuzzy_list = [(topic[ui],ui) for ui in I]
+    nzind = topic.nonzero()[0]
+    fuzzy_list = [(topic[ui],ui) for ui in nzind]
     fuzzy_list.sort()
     tmp = fuzzy_list[-min(len(fuzzy_list), k):]
     defuzzed_topic = np.zeros(topic.size)
@@ -53,74 +33,83 @@ def defuzzification(topic:np.ndarray, k=6):
         defuzzed_topic[ui] = 1
     return defuzzed_topic
 
-def find_topics_topicness(g:nx.Graph, k:int) -> np.ndarray:
+def find_topics_topicness(
+    g:nx.Graph, k:int,
+    fuzzy_output=False,
+    fuzzy_deformation=False,
+    visualize=False) -> np.ndarray:
     n = g.number_of_nodes()
     m = g.number_of_edges()
 
+    # get betweenness centrality
     betweenness = misc.dictionary_to_numpy(
         nx.betweenness_centrality(g.to_undirected(as_view=True)))
-    clustercoeff = misc.dictionary_to_numpy(
-        cluster.clustering(g,weight="weight"))
-    personalization = clustercoeff/clustercoeff.sum()
-    personalization_dict = {ui:personalization[ui] for ui in range(n)}
-    pagerank = misc.dictionary_to_numpy(
-        nx.pagerank_numpy(g, personalization=personalization_dict))
+
+    # get personalized-pagerank using cluster coefficient
+    c = cluster.clustering(g, weight="weight")
+    z = sum(c.values())
+    v = {ui:c[ui]/z for ui in range(n)}
+    pagerank = misc.dictionary_to_numpy(nx.pagerank_numpy(g, personalization=v))
     
-    # compute topicness
+    # compute topicness --------------------------
     pagerank:np.ndarray = pagerank/pagerank.max() # normalize between [0,1]
-    betweenness = 1 - betweenness/betweenness.max() # normalize between [0,1]
-    topicness:np.ndarray = pagerank*(betweenness) # a*pagerank + (1-a)*betweenness
+    betweenness = betweenness/betweenness.max() # normalize between [0,1]
+    topicness:np.ndarray = pagerank*(1-betweenness)
 
     # normalize topicness between [0,1]
     topicness = topicness - topicness.min()
     topicness =  topicness/(topicness.max())
 
-    # compute area of influence for each node
+    # normalize the edge weights
     influence.normalize_weights(g, mode="mixed")
-    visualization.plot_edge_weights(g)
 
+    # compute area of influence for each node
     node_influence = np.zeros([n,n], dtype=float)
     for u in tqdm.trange(n):
         node_influence[u,:] = influence.linear_threshold_mean(g, {u}, 15)
 
     # estiamte topics
-    surface = np.array(topicness)
-    topics_list = []
-    source_limit = 1
-    for _ in tqdm.trange(k):
-        # compute topic influence----------
-        fuzzy_topic = estimate_topic_influence(
-            g=g, topicness=surface,
-            node_influence=node_influence)
-
-        # update loop variables------------        
+    topics_list, surface = list(), np.array(topicness)
+    for i in tqdm.trange(k):
+        if i<=5:
+            _savepic(nx.DiGraph(g),surface,str(i)+".png")
+        # compute topic influence
+        fuzzy_topic = node_influence[surface.argmax(), :]
         crisp_topic = defuzzification(fuzzy_topic)
-        topics_list.append(fuzzy_topic)   # add topic to extracted topics
-        surface = np.maximum(surface - crisp_topic, 0)  # update topicness
+
+        # add topic to extracted topics
+        if not fuzzy_output:
+            topics_list.append(crisp_topic)
+        else:
+            topics_list.append(fuzzy_topic)
+
+        # update surface
+        if not fuzzy_deformation:
+            surface = np.maximum(surface - crisp_topic, 0)
+        else:
+            surface = surface*(1-fuzzy_topic)
 
     # create permutation for nodes (ordered by their influence)
-    P = [(-t.sum(),i) for i,t in enumerate(topics_list)]
-    P.sort()
-    P = [i for _,i in P]
+    tmp = [(-t.sum(),i) for i,t in enumerate(topics_list)]
+    tmp.sort()
+    P = [i for _,i in tmp]
 
     # fill node-topic matrix
     topic_number = len(topics_list)
     T = np.zeros([n, topic_number], dtype=float) # node-topic matrix 
     for i in range(topic_number):
-        T[:,i] = defuzzification(topics_list[P[i]])
+        T[:,i] = topics_list[P[i]]
 
-    # VISUALIZATION visualize various information about topics
-    '''
-    coverage = (T.sum(axis=1)>0)+0
-    sources = np.zeros([n])
-    sources[T.argmax(axis=0)] = 1
+    # visualize various information about the estiamted topics
+    if visualize:
+        coverage = T.sum(axis=1)
+        sources = np.zeros([n])
+        sources[T.argmax(axis=0)] = 1
 
-    visualization.show_graphfunction(g, pagerank, with_labels=False)
-    visualization.show_graphfunction(g, clustercoeff, with_labels=False)
-    visualization.show_graphfunction(g, topicness, with_labels=False)
-    visualization.show_graphfunction(g, sources, with_labels=False)
-    visualization.show_graphfunction(g, coverage, with_labels=False)
-    '''
+        visualization.plot_edge_weights(g)
+        visualization.show_graphfunction(g, topicness, with_labels=False)
+        visualization.show_graphfunction(g, sources, with_labels=False)
+        visualization.show_graphfunction(g, coverage, with_labels=False)
     return T
 
 #=========================================================================================
@@ -182,9 +171,7 @@ def task1(start, end, parent_directory="topics"):
         g:nx.DiGraph = GraphsPerYear[year]
         print("\extracting topics for year "+str(year)+" ...")
         print("keywords count: "+str(g.number_of_nodes()))
-        #topics = find_topics_lazy(g)
-        #topics = find_topics_IM(g,k=40)
-        topics = find_topics_topicness(g, k=60)
+        topics = find_topics_topicness(g, k=60, visualize=True)
         topic_count = topics.shape[1]
         print("topics extracted.\nnumber of topics: "+str(topic_count))
 
@@ -192,34 +179,9 @@ def task1(start, end, parent_directory="topics"):
         print("storing topics ...")
         year_dir = os.path.join(output_directory, str(year))
         os.mkdir(year_dir)
-        store_topics(g, topics, output_directory=year_dir,savefig=True)
+        store_topics(g, topics, output_directory=year_dir, savefig=True)
         print("storing complete.")
-
-
+    
 # if this module is invoked, then solve task 1
 if __name__ == "__main__":
-    task1(2015,2018)
-
-
-
-'''
-def find_topics_IM(g:nx.Graph, k:int) -> np.ndarray:
-    n = g.number_of_nodes()
-    m = g.number_of_edges()
-
-    # compute area of influence for each node
-    influence.normalize_weights(g, mode="mixed") 
-    node_influence = np.zeros([n,n], dtype=float)
-    for u in tqdm.trange(n):
-        node_influence[u:] = influence.linear_threshold_mean(g, {u}, 15)
-
-    # compute influence maximization
-    seeds = influence.influence_maximization(g=g, k=k)
-
-    # fill node-topic matrix
-    topic_number = len(seeds)
-    T = np.zeros([n, topic_number], dtype=float) # node-topic matrix 
-    for ti, s in enumerate(seeds):
-        T[:, ti] = node_influence[s,:]
-    return T
-'''
+    task1(2018,2018)

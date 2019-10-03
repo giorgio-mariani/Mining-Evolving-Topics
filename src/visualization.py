@@ -23,9 +23,18 @@ def plot_edge_weights(g):
     neighboursums = [nsum(ui) for ui in g.nodes]
     neighboursums.sort()
 
-    plot.plot(range(m),weights)
-    plot.show()
-    plot.plot(range(n),neighboursums)
+    plot.subplot(1, 2, 1)
+    plot.scatter(range(m),weights, s=1.5*1.5)
+    plot.xlabel("edges")
+    plot.ylabel("weight")
+    plot.title("Edge Weights")
+
+    plot.subplot(1, 2, 2)
+    plot.xlabel("nodes")
+    plot.ylabel("in-neighbor sum")
+    plot.title("Weighted In-neighbors Sums")
+    plot.scatter(range(n),neighboursums,s=1.5*1.5)
+    plot.tight_layout()
     plot.show()
 
 
@@ -42,15 +51,19 @@ def show_graphfunction(
     edge_count = g.number_of_edges()
 
     f = np.ones(vertex_count) if f is None else f
-    f = (f - f.min())/(f.max()-f.min()) #normalize between 0 and 1
+    scale = (f.max()-f.min())
+    scale = 1 if scale == 0 else scale
+    f = (f - f.min())/scale #normalize between 0 and 1
     vertices_color = f
 
     if nodecolors is not None:
         for k,v in nodecolors.items():
             vertices_color[k] = v
 
-    edge_color = np.array([w for u,v,w in g.edges.data(data="weight")])
-    edge_color = 1 - (edge_color - edge_color.min())/(edge_color.max()-edge_color.min())
+    edge_weight = np.array([w for u,v,w in g.edges.data(data="weight")])
+    scale = (edge_weight.max()-edge_weight.min())
+    scale = 1 if scale==0 else scale
+    edge_weight = (edge_weight - edge_weight.min())/scale
     labels = {ui:n for ui,n in g.nodes.data("name")}
     nx.draw_networkx(
         g, 
@@ -58,7 +71,7 @@ def show_graphfunction(
         node_color=vertices_color,
         node_size=40,
         node_cmap=cm.get_cmap(cmap),
-        edge_color=edge_color,
+        edge_color=edge_weight,
         edge_cmap=cm.get_cmap("binary"),
         linewidths=0,
         width=0.15,
