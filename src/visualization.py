@@ -45,7 +45,12 @@ def show_graphfunction(
     nodecolors:dict=None,
     with_labels:bool=True,
     cmap:str="viridis",
-    show_figure=True):
+    show_figure=True,
+    title=None,
+    xlabel=None,
+    ylabel=None,
+    pos=None,
+    savefile=None):
 
     vertex_count = g.number_of_nodes()
     edge_count = g.number_of_edges()
@@ -65,8 +70,12 @@ def show_graphfunction(
     scale = 1 if scale==0 else scale
     edge_weight = (edge_weight - edge_weight.min())/scale
     labels = {ui:n for ui,n in g.nodes.data("name")}
+    if pos is None:
+        pos = nx.drawing.spring_layout(g)
+
     nx.draw_networkx(
-        g, 
+        g,
+        pos=pos,
         arrows=False,
         node_color=vertices_color,
         node_size=40,
@@ -80,6 +89,14 @@ def show_graphfunction(
         with_labels=with_labels,
         labels=labels)
     
+    if title is not None:
+        plot.title(title)
+    if xlabel is not None:
+        plot.xlabel(xlabel)
+    if ylabel is not None:
+        plot.ylabel(ylabel)
+    if savefile is not None:
+        plot.savefig(savefile,dpi=300)
     if show_figure:
         plot.show()
 

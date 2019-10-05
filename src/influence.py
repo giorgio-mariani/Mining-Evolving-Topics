@@ -27,11 +27,6 @@ def normalize_weights(
     weights[maskdown] = min_acceptable
     edgedata = np.concatenate((np.expand_dims(weights,axis=1), edges), axis=1)
 
-    #REMOVE ME
-    #import matplotlib.pyplot as plt
-    #plt.scatter(range(weights.size),weights,s=1)
-    #plt.show()
-
     for i in range(g.number_of_edges()):
         w, ui, vi = edgedata[i,:]
         g[ui][vi][weight] = w

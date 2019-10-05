@@ -1,3 +1,5 @@
+from  typing import Dict
+
 import networkx as nx
 import numpy as np
 import numpy.linalg as ln
@@ -9,6 +11,10 @@ def dictionary_to_numpy(d:dict):
         nparray[ui] = d[ui]
     return nparray
 
+def get_topic_keywords(g:nx.Graph, topic:np.ndarray) -> Dict[str,float]:
+    return {g.nodes[ui]["name"]:topic[ui] for ui in g.nodes if topic[ui] > 0}
+
+#--------------------------------------------------------------------------------
 def low_rank_approximation(A:np.ndarray, k) -> np.ndarray:
     u, s, vh = ln.svd(
         A, full_matrices=True, compute_uv=True) # get singular values and associated matrices

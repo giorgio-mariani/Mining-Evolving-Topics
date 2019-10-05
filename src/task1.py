@@ -48,12 +48,15 @@ def find_topics_topicness(
     # get personalized-pagerank using cluster coefficient
     c = cluster.clustering(g, weight="weight")
     z = sum(c.values())
-    v = {ui:c[ui]/z for ui in range(n)}
-    pagerank = misc.dictionary_to_numpy(nx.pagerank_numpy(g, personalization=v))
+    if z != 0:
+        v = {ui:c[ui]/z for ui in range(n)}
+        pagerank = misc.dictionary_to_numpy(nx.pagerank_numpy(g, personalization=v))
+    else:
+        pagerank = misc.dictionary_to_numpy(nx.pagerank_numpy(g))
     
     # compute topicness --------------------------
     pagerank:np.ndarray = pagerank/pagerank.max() # normalize between [0,1]
-    betweenness = betweenness/betweenness.max() # normalize between [0,1]
+    betweenness = betweenness/betweenness.max() if betweenness.max() != 0 else betweenness # normalize between [0,1]
     topicness:np.ndarray = pagerank*(1-betweenness)
 
     # normalize topicness between [0,1]
@@ -70,9 +73,8 @@ def find_topics_topicness(
 
     # estiamte topics
     topics_list, surface = list(), np.array(topicness)
-    for i in tqdm.trange(k):
-        if i<=5:
-            _savepic(nx.DiGraph(g),surface,str(i)+".png")
+    #for i in tqdm.trange(k):
+    while (surface > 0).any():
         # compute topic influence
         fuzzy_topic = node_influence[surface.argmax(), :]
         crisp_topic = defuzzification(fuzzy_topic)
@@ -107,13 +109,26 @@ def find_topics_topicness(
         sources[T.argmax(axis=0)] = 1
 
         visualization.plot_edge_weights(g)
+        
+        '''
+        # REMOVEME
+        alpha=0.8
+        pr = misc.dictionary_to_numpy(nx.pagerank_numpy(g,alpha=alpha))
+        ppr = misc.dictionary_to_numpy(nx.pagerank_numpy(g,alpha=alpha,personalization=v))
+        pos = nx.drawing.spring_layout(g)
+        visualization.show_graphfunction(g, pr, with_labels=False,title="Pagerank",pos=pos, savefile="pr.png")
+        visualization.show_graphfunction(g, ppr, with_labels=False,title="Personalized Pagerank",pos=pos,savefile="ppr.png")
+        visualization.show_graphfunction(g, betweenness, with_labels=False,title="Betwenness Centrality",pos=pos,savefile="bc.png")
+        visualization.show_graphfunction(g, topicness, with_labels=False,title="Topicness",pos=pos,savefile="top.png")
+        '''
+
         visualization.show_graphfunction(g, topicness, with_labels=False)
         visualization.show_graphfunction(g, sources, with_labels=False)
         visualization.show_graphfunction(g, coverage, with_labels=False)
     return T
 
 #=========================================================================================
-def store_topics(g:nx.DiGraph, topics:np.ndarray, output_directory:str="topics", savefig=True,gradient_topic=True):
+def store_topics(g:nx.DiGraph, topics:np.ndarray, output_directory:str="topics", savefig=True, gradient_topic=True):
     """
     This function stores the topics described by the array 'topics' inside the directory 'output_directory'.
     Note that 'topics' must be an array with shape: [vertices number, topics number].
@@ -171,7 +186,7 @@ def task1(start, end, parent_directory="topics"):
         g:nx.DiGraph = GraphsPerYear[year]
         print("\extracting topics for year "+str(year)+" ...")
         print("keywords count: "+str(g.number_of_nodes()))
-        topics = find_topics_topicness(g, k=60, visualize=True)
+        topics = find_topics_topicness(g, k=60, visualize=False)
         topic_count = topics.shape[1]
         print("topics extracted.\nnumber of topics: "+str(topic_count))
 
@@ -184,4 +199,4 @@ def task1(start, end, parent_directory="topics"):
     
 # if this module is invoked, then solve task 1
 if __name__ == "__main__":
-    task1(2018,2018)
+    task1(2010,2010)
