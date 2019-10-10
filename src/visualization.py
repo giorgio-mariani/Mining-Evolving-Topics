@@ -7,7 +7,6 @@ import numpy as np
 import scipy.stats as stats
 
 
-
 def plot_edge_weights(g):
     m = g.number_of_edges()
     n = g.number_of_nodes()

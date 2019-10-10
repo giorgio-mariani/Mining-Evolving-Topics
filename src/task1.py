@@ -16,14 +16,10 @@ import parse_data as ps
 import visualization
 
 # find topics algorithm ============================================================
-def estimate_topic_influence(
-    g:nx.DiGraph, topicness:np.ndarray, node_influence:np.ndarray, source_limit:int=3):
-    
-    # estimate topic sources
-    topic_influence = np.power(topic_influence, 0.5)
-    return topic_influence
-
 def defuzzification(topic:np.ndarray, k=6):
+    """
+    This function returns a vector representing a defuzzified version of the fuzzy vector 'topic'.
+    """
     nzind = topic.nonzero()[0]
     fuzzy_list = [(topic[ui],ui) for ui in nzind]
     fuzzy_list.sort()
@@ -38,6 +34,13 @@ def find_topics_topicness(
     fuzzy_output=False,
     fuzzy_deformation=False,
     visualize=False) -> np.ndarray:
+    """
+    This function returns a node-topic matrix T, in which T[ui,ti]=1 means that keyword ui belongs to
+    the topic ti.
+    The computation of this matrix uses an iterative algorithm, which picks best nodes using a 'topicness'
+    metric, derived from pagerank, local cluster coefficient, and betweenness centrality.
+    """
+
     n = g.number_of_nodes()
     m = g.number_of_edges()
 
@@ -109,26 +112,13 @@ def find_topics_topicness(
         sources[T.argmax(axis=0)] = 1
 
         visualization.plot_edge_weights(g)
-        
-        '''
-        # REMOVEME
-        alpha=0.8
-        pr = misc.dictionary_to_numpy(nx.pagerank_numpy(g,alpha=alpha))
-        ppr = misc.dictionary_to_numpy(nx.pagerank_numpy(g,alpha=alpha,personalization=v))
-        pos = nx.drawing.spring_layout(g)
-        visualization.show_graphfunction(g, pr, with_labels=False,title="Pagerank",pos=pos, savefile="pr.png")
-        visualization.show_graphfunction(g, ppr, with_labels=False,title="Personalized Pagerank",pos=pos,savefile="ppr.png")
-        visualization.show_graphfunction(g, betweenness, with_labels=False,title="Betwenness Centrality",pos=pos,savefile="bc.png")
-        visualization.show_graphfunction(g, topicness, with_labels=False,title="Topicness",pos=pos,savefile="top.png")
-        '''
-
         visualization.show_graphfunction(g, topicness, with_labels=False)
         visualization.show_graphfunction(g, sources, with_labels=False)
         visualization.show_graphfunction(g, coverage, with_labels=False)
     return T
 
 #=========================================================================================
-def store_topics(g:nx.DiGraph, topics:np.ndarray, output_directory:str="topics", savefig=True, gradient_topic=True):
+def store_topics(g:nx.DiGraph, topics:np.ndarray, output_directory:str, savefig=True, gradient_topic=True):
     """
     This function stores the topics described by the array 'topics' inside the directory 'output_directory'.
     Note that 'topics' must be an array with shape: [vertices number, topics number].
@@ -176,8 +166,10 @@ def task1(start, end, parent_directory="topics"):
 
     # create output directory
     datestr = datetime.datetime.now().isoformat().replace(":","_")
-    output_directory = os.path.join(parent_directory, datestr)    #TODO check for existance of output directory
+    output_directory = os.path.join(parent_directory, datestr)
+    topics_directory = os.path.join(output_directory, "topics")
     os.mkdir(output_directory) # NOTE assuming this directory does not already exists, since it depends on the time
+    os.mkdir(topics_directory) 
 
     # main loop for topic extraction, iterating over the years for topic extraction
     for year in range(start, end+1):
@@ -192,7 +184,7 @@ def task1(start, end, parent_directory="topics"):
 
         # store resulting topics
         print("storing topics ...")
-        year_dir = os.path.join(output_directory, str(year))
+        year_dir = os.path.join(topics_directory, str(year))
         os.mkdir(year_dir)
         store_topics(g, topics, output_directory=year_dir, savefig=True)
         print("storing complete.")

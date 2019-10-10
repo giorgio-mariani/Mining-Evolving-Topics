@@ -33,6 +33,11 @@ def create_topic_links(
     mapping_method="chamfer",
     word_sim_method="jaccard",
     mode="full") -> list:
+    """
+    This function returns a list of tuple representing a mapping between topics in T1 to topics in T2.
+    These tuples contain 3 elements (ti,tj, ms) with ti a topic in T1, tj a topic in Tj and ms the map 
+    strength between ti and tj.
+    """
 
     n1 = g1.number_of_nodes()
     n2 = g2.number_of_nodes()
@@ -93,16 +98,6 @@ def create_topic_links(
     if mode == "reduced": # reduced mode --------------------------------------
         g1_map_g2 = score.argmax(axis=1) # array containing mapping between topics in g1 to topics in g2
         g2_map_g1 = score.argmax(axis=0) # array containing mapping between topics in g2 to topics in g1
-
-        '''
-        # REMOVEME visualization of mapping 
-        #visualization.show_word_similarity(g1=g1, g2=g2, wordsimilarity=score)
-        tn1, tn2 = score.shape
-        X = np.zeros([tn1,tn2])
-        X[range(tn1), g1_map_g2] = score[range(tn1), g1_map_g2]
-        X[g2_map_g1, range(tn2)] += score[g2_map_g1, range(tn2)]
-        #visualization.show_word_similarity(g1=g1, g2=g2, wordsimilarity=X)
-        '''
         # compute mapping
         for t1, t2 in enumerate(g1_map_g2):
             if score[t1,t2] != 0:
@@ -199,6 +194,9 @@ def load_topics(topic_directory:str) -> Tuple[Dict[int, nx.DiGraph], Dict[int, n
     return graphs_per_year, topics_per_year
 
 def store_topics(topic_directory, fused_topics):
+    """
+    This function stores the time-fused topics generated during task 2.
+    """
     # create directory for chains
     fused_topics_directory = os.path.join(topic_directory, "fused_topics")
     if os.path.exists(fused_topics_directory):
@@ -224,7 +222,7 @@ def store_topics(topic_directory, fused_topics):
     with open(fname, "w") as f:
         i = 0
         for topic in fused_topics:
-            for w, c in topic.items():
+              for w, c in topic.items():
                 f.write("T"+str(i)+"\t"+w+"\t"+str(c)+"\n")
             i += 1
 
