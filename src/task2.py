@@ -121,7 +121,7 @@ def create_topic_links(
     return mapping
 
 # =============================================================================
-def get_path(tdag:nx.DiGraph, s):
+def candidate_chain(tdag:nx.DiGraph, s):
     alpha = 1/3
     path = [s]
     sumscore = 0
@@ -161,7 +161,7 @@ def chains_extraction(tdag, k=20):
     '''
     paths = []
     for y,t in tqdm.tqdm(tdag):
-        score, path, words = get_path(tdag, s=(y,t))
+        score, path, words = candidate_chain(tdag, s=(y,t))
         paths.append( (score, path, words) )
 
     top_paths = []
@@ -198,11 +198,63 @@ def load_topics(topic_directory:str) -> Tuple[Dict[int, nx.DiGraph], Dict[int, n
     print("topics loaded.")
     return graphs_per_year, topics_per_year
 
+def store_topics(topic_directory, fused_topics):
+    # create directory for chains
+    fused_topics_directory = os.path.join(topic_directory, "fused_topics")
+    if os.path.exists(fused_topics_directory):
+        import shutil
+        shutil.rmtree(fused_topics_directory)
+    os.makedirs(fused_topics_directory)
+    
+    # store time-fused topics
+    print("storing fused-topics ...")
+    for i, topic in enumerate(tqdm.tqdm(fused_topics)):
+        from wordcloud import WordCloud
+        wcloud = WordCloud(background_color="white")
+        wcloud.generate_from_frequencies(topic)
+        
+        # store
+        fname = os.path.join(fused_topics_directory, str(i)+".png")
+        plot.imshow(wcloud, interpolation="bilinear")
+        plot.axis("off")
+        plot.savefig(fname, dpi=300)
+
+    # store
+    fname = os.path.join(fused_topics_directory, "time-fused-topics.png")
+    with open(fname, "w") as f:
+        i = 0
+        for topic in fused_topics:
+            for w, c in topic.items():
+                f.write("T"+str(i)+"\t"+w+"\t"+str(c)+"\n")
+            i += 1
+
+def store_chains(topic_directory, topic_chains, gperyear, tperyear):
+    chains_directory = os.path.join(topic_directory, "chains")
+    if os.path.exists(chains_directory):
+        import shutil
+        shutil.rmtree(chains_directory)
+    os.makedirs(chains_directory)
+
+    # store chains
+    print("storing chains ...")
+    for i,p in enumerate(tqdm.tqdm(topic_chains)):
+        # store heaviest chain
+        chain_directory = os.path.join(chains_directory, "chain_"+str(i))
+        os.makedirs(chain_directory)
+        for u in p:
+            y, ti = u
+            g, t = gperyear[y], tperyear[y][:,ti]
+            f = os.path.join(chain_directory, str(y)+".png")
+            visualization.create_topic_picture_gradient(g=g, topic=t, file=f)
+
+#========================================================================================
+
 def task2(
     parent_folder:str="topics", 
     topic_folder:str="last",
     **kwargs):
 
+    # get parameters
     topic_score = "chamfer" if "topic_score" not in kwargs else kwargs["topic_score"]
     word_similarity = "jaccard" if "word_similarity" not in kwargs else kwargs["word_similarity"]
     visualize = False if "visualize" not in kwargs else kwargs["visualize"]
@@ -242,11 +294,12 @@ def task2(
             edges.append( (source_node, target_node, attr) )
         return edges
 
+    # create or load dag into memory
     dag_file = os.path.join(topic_directory,"topic-DAG.pickle")
     if load_dag:
         topic_DAG = nx.read_gpickle(dag_file)
     else:
-        # add nodes to graph ------------------------------------------------------
+        # add nodes to graph 
         print("creating topic DAG:\nadding nodes to the topic DAG ...")
         topic_DAG = nx.DiGraph()
         for i in range(len(years)):
@@ -254,7 +307,7 @@ def task2(
             g, t = gperyear[y], tperyear[y]
             topic_DAG.add_nodes_from(_create_DAG_nodes(g, t, y))
 
-        # add leyers to the DAG ---------------------------------------------------
+        # add leyers to the DAG 
         print("adding edges to the topic DAG ...")
         bar = tqdm.tqdm(total=len(years)*(len(years)-1)/2)
         for i in range(len(years)-1):
@@ -272,12 +325,7 @@ def task2(
                     word_sim_method=word_similarity)
                 # add nodes and edges to the DAG
                 topic_DAG.add_edges_from(_create_DAG_edges(mapping, y1, y2))
-
-        # write DAG into file
-        nx.write_gpickle(topic_DAG, dag_file)
-
-    # compute chains ----------------------------------------------------------
-    paths = chains_extraction(topic_DAG)
+        nx.write_gpickle(topic_DAG, dag_file) # write DAG into file
 
     # show the topic DAG ------------------------------------------------------
     if visualize:
@@ -297,27 +345,16 @@ def task2(
         plot.show()
     #----------------------------------------------------------------------
 
-    # create directory for chains
-    chains_folder = "chains"
-    chains_directory = os.path.join(topic_directory, chains_folder)
-    if os.path.exists(chains_directory):
-        import shutil
-        shutil.rmtree(chains_directory)
-    os.makedirs(chains_directory)
-    # store chains
-    print("storing chains ...")
-    for i,p in enumerate(tqdm.tqdm(paths)):
-        # store heaviest chain
-        chain_directory = os.path.join(chains_directory, "chain_"+str(i))
-        os.makedirs(chain_directory)
-        for u in p:
-            y, ti = u
-            g, t = gperyear[y], tperyear[y][:,ti]
-            f = os.path.join(chain_directory, str(y)+".png")
-            visualization.create_topic_picture_gradient(g=g, topic=t, file=f)
+    # compute and store chains 
+    paths = chains_extraction(topic_DAG)
+    store_chains(
+        topic_directory=topic_directory,
+        topic_chains=paths,
+        gperyear=gperyear,
+        tperyear=tperyear)
 
     # create time-fused topics
-    merged_topics = []
+    fused_topics = []
     from collections import Counter
     for p in paths:
         merged_keywords = Counter()
@@ -325,19 +362,10 @@ def task2(
             words = topic_DAG.nodes[u]["topic"]
             for w in words:
                 merged_keywords[w] += 1
-        merged_topics.append(merged_keywords)
+        fused_topics.append(merged_keywords)
     
-    # store final macro topics
-    print("storing fused-topics ...")
-    for topic in tqdm.tqdm(merged_topics):
-        from wordcloud import WordCloud
-        wcloud = WordCloud(background_color="white")
-        wcloud.generate_from_frequencies(topic)
-        
-        # show
-        plot.imshow(wcloud, interpolation="bilinear")
-        plot.axis("off")
-        plot.show()
+    # store topics
+    store_topics(topic_directory, fused_topics)
 
 
 #------------------------------------------------------------------------------

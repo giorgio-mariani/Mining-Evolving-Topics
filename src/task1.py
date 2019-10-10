@@ -186,7 +186,7 @@ def task1(start, end, parent_directory="topics"):
         g:nx.DiGraph = GraphsPerYear[year]
         print("\extracting topics for year "+str(year)+" ...")
         print("keywords count: "+str(g.number_of_nodes()))
-        topics = find_topics_topicness(g, k=60, visualize=False)
+        topics = find_topics_topicness(g, k=60, visualize=True)
         topic_count = topics.shape[1]
         print("topics extracted.\nnumber of topics: "+str(topic_count))
 
