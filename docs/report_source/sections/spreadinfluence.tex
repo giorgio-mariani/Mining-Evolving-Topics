@@ -1,0 +1,76 @@
+\section{Diffusion Models}
+\subsection{Linear Threshold Model}\label{sec:ltm}
+The \textit{linear threshold model} \cite{diffusion} is a diffusion model, which are a class of models sometimes adopted in order to represent the rate of diffusion of an information in a given network.\\
+Differently from simpler models like the \textit{tipping model} and the \textit{SIR model}, the linear threshold makes use of information between edges, making it more compelling for this project; Specifically, in the linear threshold model, each directed edge $(u,v) \in E$ has associated a non-negative weight $w_{u,v}$, with the additional constraint that for any node $v\in V$, the total in-neighbor sum\footnote{Throughout this document, we refer to the \textit{in-neighbor sum} of a node as the sum of all its incoming edges weights.} must be less than or equal to one
+\begin{equation}\label{eq:linear_threshold_constraint} 
+    \sum_{u\in \InNeighbours (v)} w_{u,v}\le 1
+\end{equation}
+in order to be consistent.
+
+Given a \textit{Social Network}, represented by the graph $G=(\Vertices,\Edges)$ (with $|\Vertices|=n$ and $|\Edges|=m$), the linear threshold model computes a set of nodes that might\footnote{Since the algorithm is randomized, this will change depending on the execution.} be influenced by an initial set of source nodes (referred to as $A_\theta^{(0)}$). The process works by first assigning (uniformly at random) to each vertex $v$ a threshold value $\theta_v\in(0,1]$, then it proceeds at iterations, where in iteration $i$, it expands the set of currently active nodes (indicated by $A_\theta^{(i)}$) until convergence is reached.  The active nodes at iteration $i$ are update through  the following recurrent equation:
+$$
+A^{(i+1)}_{\theta}=A^{(i)}_{\theta}\cup{}\left\{v\in \Vertices : \sum_{u\in\InNeighbours{}(v)\cap A^{(i)}_{\theta}} w_{u,v}\ge \theta_v\right\}
+$$
+The set of active nodes $A^{(i)}_\theta$ is said to have reached convergence if and only if $A_\theta^{(i)} = A_\theta^{(i+1)}$.
+
+\subsection{Average Linear Threshold}\label{sec:altm}
+As previously stated, the linear threshold model is a randomized process with the output varying depending on the threshold assignments; in order to reduce the output sensitivity, instead of giving a boolean output for each node $v$ (\ie{} the node was/wasn't influenced), it is possible to execute the algorithm a number of times\footnote{For this project, the algorithm is invoked 12 times  in order to compute the relative frequencies.} ($n$) and using the average infection rate $\alpha_v\in[0,1]$ as output:
+\begin{equation}
+\alpha_v = \frac{1}{n}\sum_{i=0}^{n} b_{v}^{(i)}
+\end{equation}
+with $b_{v}^{(i)}\in \{0,1\}$ indicating the result of linear threshold during trial $i$.
+
+
+\paragraph{\textbf{Probabilistic interpretation.}}
+This value can be seen as an estimator for the probability of infection of the node $v$, if the set of nodes $S$ is the infection source:
+$$P\{\text{$v$ is infected $|$ $S$ as source}\}=\alpha_{v,S}$$
+%This probability is estimated through the relative frequency of infection; the linear threshold algorithm is applied a number of times (using $S$ as source set), then the probability of infection of $v$ is estimated as the  division between the number of times $v$ was infected by the total number of trials: 
+%\begin{equation}\label{eq:infection_prob}
+%    \hat P\{\text{$v$ is infected $|$ $S$ as source}\} = \frac{\text{num. of trials in which $v$ was infected}}{\text{number of trials}}
+%\end{equation}
+
+\paragraph{\textbf{Fuzzy Set interpretation.}} It is possible to interpret the value $\alpha$  as  how much the node $v$ is contained in the set of nodes infected by the source set $S$. So if a fuzzy set \cite{fuzzy} is used to describe the nodes infected by $S$, then $\alpha_{v,S}$ can represent its membership function:
+\begin{definition}
+A \textit{Fuzzy Set} $\Fuzzy{F}$ in $X$ is a set of ordered pairs:
+$$
+\Fuzzy{F} = \left\{(x, \mu_{\Fuzzy{F}}(x)): x\in X \right\}
+$$
+The function $\mu_{\Fuzzy{F}}:X \rightarrow{} [0,1]$ is called \textit{membership function}, and describes how much a given element $x$ belongs to the set $\Fuzzy{F}$.
+\end{definition}
+Using this definition, it is possible to define the set of nodes influenced by the source $S$ as the fuzzy set:
+$$\Fuzzy{S} = \Big\{(v, \mu_{\Fuzzy{S}}(v)): v\in V, \mu_{\Fuzzy{S}}(v) = \alpha_{v,S}\Big\}$$
+
+
+\newcommand{\Visited}{\mathrm{visited}}
+\newcommand{\Output}{\mathrm{result}}
+\begin{algorithm}
+	\caption{Linear Threshold Model}
+\begin{algorithmic}[1]
+	\Require{graph $G$, with nodes $\Vertices(G)$.}
+	\Require{source node $s\in \Vertices(G)$, in which the algorithm starts diffusing influence.}
+	\Statex{}
+	\Procedure{linear\textunderscore{}threshold\textunderscore{}model}{$G$, $s$, $\theta$}
+	\State $\Visited \leftarrow$ array with size $|\Vertices(G)|$ containing all zeros entries.
+	\State $\Visited[s] \leftarrow 1$
+	\State {$Q \leftarrow$ new queue containing only $s$.}
+	\While{$Q$ is not empty}
+		\State $v \leftarrow$ dequeue($Q$)
+		\For{ $u \in \OutNeighbours(v)$}
+			\If {$\Visited[u] < {\theta}_{u}$}
+				\State $\Visited[u] \leftarrow \Visited[u] + w_{v, u}$
+				\If {$\Visited[u] \ge \Vec{\theta}_{u}$}
+					\State {enqueue($Q$, $u$)}
+				\EndIf
+			\EndIf
+		\EndFor
+	\EndWhile
+	\State $\Output \leftarrow$ array with size $|\Vertices(G)|$ containing all zeros entries.
+	\For{$u\in \Vertices(G)$}
+		\State $\Output[u] \leftarrow \begin{cases} 1 &\text{if } \Visited[u] \ge \theta_{u}\\
+		0 &\text{otherwise}
+		\end{cases} $
+	\EndFor
+	\State{\Return $\Output$}
+	\EndProcedure
+\end{algorithmic}
+\end{algorithm}

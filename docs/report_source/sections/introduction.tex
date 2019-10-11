@@ -1,0 +1,47 @@
+\section{Introduction}
+This document is a report of the \textbf{Web and Social Information Extraction Course} project.
+% TODO give description of input data
+The project consists of two correlated tasks that need to be solved:
+\begin{description}
+\item[Task 1] requires the extraction of topics for each year between 2000 and 2018, included. These topics should be extracted by processing information contained in several keyword co-occurrence graphs (one per year). Diffusion models have to be utilized in order to determine the nodes inside a topic.
+
+\item[Task 2] asks for the tracking and merging of the previously gathered topics throughout the years between 2000 and 2018. The results of this task is a set of time-fused topics.
+%\textit{Direct Acyclic Graph} (DAG) mapping topics from one year to topics in the next one.%are twice: a set of topics sequences indicating the evolution of a certain topic over time, and a set of topics obtained by merging the topic information through time. 
+\end{description}
+
+\subsection{Technologies}
+\paragraph{\textbf{Python Interpreter version 3.7.}}
+The Language used in the project is \textbf{Python} version 3.7, this language was chosen mainly due to the availability of specific computation libraries such as \textbf{NumPy} and \textbf{NetworkX}. The flexibility of the language also allows for very fast prototyping, which can help in an project like the one proposed, since different approaches were studied during the project progression.
+
+\paragraph{\textbf{NumPy Module.}} It is one of the fundamental packages for scientific computing with Python. It contains among other things: a powerful N-dimensional array object, tools for integrating C/C++ code, linear algebra functions, Fourier transform, and random number capabilities.
+
+\paragraph{\textbf{NetworkX Module.}} This module is a Python library designed for the creation, manipulation, and analysis of different types of networks. It offers a variety of already implemented graph algorithms, such as PageRank, Betweenness Centrality, etc.
+It is [..]
+
+\paragraph{\textbf{igraph-python Module.}}
+\textbf{igraph} was also used as graph processing library during the early phase of the project, however due to the lack of certain algorithms and the overall less intuitive interface, this package was abandoned for the simpler \textbf{NetworkX}. It should be said, although, that \textbf{igraph} achieved better performance in the various tasks.
+
+
+\subsection{Data}
+The datasets used in the project are two: one containing information about keywords co-occurrence, and one containing co-authorship data. Both datasets are domain-specific and contain entries associated only to machine-learning related articles and papers. 
+
+\paragraph{\textbf{Dataset \DSone}.}
+As mentioned, the first dataset (denoted  as \DSone{}) contains information about keyword co-occurrence throughout some intervals of years, including between 2000 and 2018. Formally, it contains rows with the following structure:
+\begin{center}
+\newcommand{\TAB}{\textless tab\textgreater}
+\textbf{y} \TAB{} \textbf{k\textsubscript{i}} \TAB{} \textbf{k\textsubscript{j}} \TAB{} [\textbf{a\textsubscript{0}}:$n_0$ ,..., \textbf{a\textsubscript{m}}:$n_m$]
+\end{center}
+with \textbf{k\textsubscript{i}} and \textbf{k\textsubscript{j}} two co-occurring keywords, \textbf{y} the year in which they co-occur, while $n_k$ is the number of articles published by author \textbf{a\textsubscript{k}} containing both \textbf{k\textsubscript{i}} and \textbf{k\textsubscript{j}}.
+Therefore, this dataset implicitly defines a number of graphs, one per year, describing co-occurrence relationships. %The author information is also used to calculate weights over these co-occurrences (see \cref{sec:weights}).
+
+
+
+\paragraph{\textbf{Dataset \DStwo}.}
+This dataset stores information about co-authorship between  authors during several years, including the time-interval from 2000 to 2018.  Rows in the dataset are defined as  
+\begin{center}
+\newcommand{\TAB}{\textless tab\textgreater}
+\textbf{y} \TAB{} \textbf{a\textsubscript i} \TAB{} \textbf{a\textsubscript j} \TAB{} \textbf{n}
+\end{center}
+with \textbf{y} the co-authorship year, \textbf{a\textsubscript{i}} and \textbf{a\textsubscript{j}} the collaborating authors, and \textbf{n} the number of  collaborations between   \textbf{a\textsubscript{i}} and \textbf{a\textsubscript{j}} within the year.\\
+Again, this dataset can be seen as a sequence of graphs (one per year), having as nodes authors and as edge information about the co-authorship relation.
+ 

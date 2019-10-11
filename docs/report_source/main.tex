@@ -1,0 +1,84 @@
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{a4paper} % or letterpaper (US) or a5paper or....
+% \geometry{margin=2in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+
+\usepackage{graphicx} % support the \includegraphics command and options
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% SECTION TITLE APPEARANCE
+\usepackage{sectsty}
+\allsectionsfont{\sffamily\mdseries\upshape} % (See the fntguide.pdf for font help)
+% (This matches ConTeXt defaults)
+
+%%% ToC (table of contents) APPEARANCE
+\usepackage[nottoc,notlof,notlot]{tocbibind} % Put the bibliography in the ToC
+\usepackage[titles,subfigure]{tocloft} % Alter the style of the Table of Contents
+\renewcommand{\cftsecfont}{\rmfamily\mdseries\upshape}
+\renewcommand{\cftsecpagefont}{\rmfamily\mdseries\upshape} % No bold!
+
+
+
+%%% END Article customizations
+
+\usepackage{giorgio_style}
+
+\begin{document}
+
+\begin{titlepage}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\center 
+\textsc{\LARGE Sapienza University of Rome }\\[1.5cm] 
+\HRule \\[0.4cm]
+{ \huge \textbf {Mining Evolving Topics }}\\[.75cm]
+{\Large Web and Social Information Extraction Assignment}\\[0.4cm]
+\HRule \\[1.5cm]
+
+\begin{minipage}{0.4\textwidth}
+ \large
+\emph{Author:}\\[0.5cm]
+\Large  Giorgio \textsc{Mariani} 
+\end{minipage} \\[3cm]
+
+\includegraphics[width=7.4cm]{logo.png}
+\vfill 
+\end{titlepage}
+
+%NEW commands
+\newcommand{\DSone}{\textbf{DS-1}}
+\newcommand{\DStwo}{\textbf{DS-2}}
+\newcommand{\set}[1]{#1}
+\tableofcontents
+
+
+%start report
+\newpage
+\input{sections/introduction}
+\newpage
+\input{sections/spreadinfluence.tex}
+\newpage
+\input{sections/task1.tex}
+\newpage
+\input{sections/task2}
+
+
+
+\end{document}

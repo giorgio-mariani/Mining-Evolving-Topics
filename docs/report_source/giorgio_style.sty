@@ -1,0 +1,89 @@
+\usepackage[cm]{sfmath}
+\usepackage{csquotes}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+% change the counter show depth
+\setcounter{secnumdepth}{2}
+
+% latin abbreviations
+\usepackage{graphics}
+\usepackage{expl3}
+\ExplSyntaxOn
+\newcommand\latinabbrev[1]{
+  \peek_meaning:NTF . {#1\@}%
+  { \peek_catcode:NTF a {#1.\@ }{#1.\@}}}
+\ExplSyntaxOff
+\def\eg{\latinabbrev{e.g}}
+\def\etal{\latinabbrev{et al}}
+\def\etc{\latinabbrev{etc}}
+\def\ie{\latinabbrev{i.e}}
+
+
+% mathoperators
+\newcommand{\InNeighbours}{\mathop{\eta^{in}}}
+\newcommand{\OutNeighbours}{\mathop{\eta^{out}}}
+\newcommand{\Neighbours}{\mathop{\eta}}
+\DeclareMathOperator{\Jaccard}{jaccard}
+\DeclareMathOperator{\Var}{TS}
+\DeclareMathOperator{\EMA}{EMA}
+
+
+\newcommand{\Mat}[1]{\mathsf{\mathbf{#1}}}
+\renewcommand{\Vec}[1]{\mathsf{\mathbf{#1}}}
+\newcommand{\Fuzzy}[1]{\widetilde{#1}}
+\newcommand{\Membership}[1]{\mathop{\mu_{#1}}}
+\newcommand{\Reals}{\mathbb{R}}
+\newcommand{\Vertices}{\mathrm{V}}
+\newcommand{\Edges}{\mathrm{E}}
+\newcommand{\DAG}{\text{\tiny DAG}}
+
+
+\newcommand{\KeywordScore}{\mathop{\mathrm{word\text{-}score}}}
+\newcommand{\TopicScore}{\mathop{\mathrm{topic\text{-}score}}}
+
+
+% Theorem stuff
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
+
+\usepackage[noend]{algpseudocode}
+\usepackage{algorithm}
+\usepackage{xcolor}
+
+\definecolor{AlgKeywordColor}{rgb}{0.00, 0.00, 0.666}	% = Dark Blue
+\definecolor{AlgProcedureColor}{rgb}{0.00, 0.5, 0.20}	% = Dark Green
+\definecolor{AlgCommentColor}{gray}{0.40} 				% = Gray (40% black)
+
+\algrenewcommand\algorithmicend{\textbf{\color{AlgKeywordColor}end}}
+\algrenewcommand\algorithmicdo{\textbf{\color{AlgKeywordColor}do}}
+\algrenewcommand\algorithmicwhile{\textbf{\color{AlgKeywordColor}while}}
+\algrenewcommand\algorithmicfor{\textbf{\color{AlgKeywordColor}for}}
+\algrenewcommand\algorithmicforall{\textbf{\color{AlgKeywordColor}for all}}
+\algrenewcommand\algorithmicloop{\textbf{\color{AlgKeywordColor}loop}}
+\algrenewcommand\algorithmicrepeat{\textbf{\color{AlgKeywordColor}repeat}}
+\algrenewcommand\algorithmicuntil{\textbf{\color{AlgKeywordColor}until}}
+\algrenewcommand\algorithmicprocedure{\textbf{\color{AlgKeywordColor}procedure}}
+\algrenewcommand\algorithmicfunction{\textbf{\color{AlgKeywordColor}function}}
+\algrenewcommand\algorithmicif{\textbf{\color{AlgKeywordColor}if}}
+\algrenewcommand\algorithmicthen{\textbf{\color{AlgKeywordColor}then}}
+\algrenewcommand\algorithmicelse{\textbf{\color{AlgKeywordColor}else}}
+\algrenewcommand\algorithmicrequire{\textbf{\color{AlgKeywordColor}Require:}}
+\algrenewcommand\algorithmicensure{\textbf{\color{AlgKeywordColor}Ensure:}}
+\algrenewcommand\algorithmicreturn{\textbf{\color{AlgKeywordColor}return}}
+
+\algrenewcommand\algorithmiccomment[1]{\hfill{\color{AlgCommentColor}\(\triangleright\) #1}}%
+\newcommand{\@AlgTextProc}[1]{\textcolor{AlgProcedureColor}{\textsf{#1}}}
+\algrenewcommand\textproc{\@AlgTextProc}	
+
+\hypersetup{
+	pdfnewwindow=true,
+	colorlinks=true,
+	linkcolor=green!50!black,          % color of internal links 
+	citecolor=green!50!black,        
+	filecolor=magenta!50!black,      
+	urlcolor=cyan!50!black          
+}
