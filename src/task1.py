@@ -16,9 +16,22 @@ import parse_data as ps
 import visualization
 
 # find topics algorithm ============================================================
-def defuzzification(topic:np.ndarray, k=6):
+def defuzzification(topic:np.ndarray, k:int=6)->np.ndarray:
     """
-    This function returns a vector representing a defuzzified version of the fuzzy vector 'topic'.
+    Return a vector representing a defuzzification of a fuzzy vector.
+
+    parameters
+    ----------
+    topic: ndarra
+        vector with size [n] containing the membership of each node w.r.t. a topic.
+        Hence, for each node ui, topic[ui] in [0,1].
+    k : int 
+        maximum number of keywords that the defuzzified version of 'topic' must have.
+
+    Returns
+    -------
+    ndarray
+        A vector representing the indicator function of the deffuzzified input vector.
     """
     nzind = topic.nonzero()[0]
     fuzzy_list = [(topic[ui],ui) for ui in nzind]
@@ -30,15 +43,27 @@ def defuzzification(topic:np.ndarray, k=6):
     return defuzzed_topic
 
 def find_topics_topicness(
-    g:nx.Graph, k:int,
-    fuzzy_output=False,
-    fuzzy_deformation=False,
+    g:nx.DiGraph,
     visualize=False) -> np.ndarray:
     """
-    This function returns a node-topic matrix T, in which T[ui,ti]=1 means that keyword ui belongs to
-    the topic ti.
+    Computes a keyword-topic matrix containing memebership information of keywords w.r.t topics.
+
+    
+    Extended SUmmuray
+    -----------------
     The computation of this matrix uses an iterative algorithm, which picks best nodes using a 'topicness'
     metric, derived from pagerank, local cluster coefficient, and betweenness centrality.
+
+    Parameters
+    ----------
+    g : nx.DiGraph
+        keyword co-occurrence graph
+
+    Returns
+    -------
+    ndarray
+        keyword-topic matrix, containing the information about keywords and topics. 
+        specifically for the entry [ui,ti] if contains 1 if the topic is in 
     """
 
     n = g.number_of_nodes()
@@ -83,27 +108,16 @@ def find_topics_topicness(
         crisp_topic = defuzzification(fuzzy_topic)
 
         # add topic to extracted topics
-        if not fuzzy_output:
-            topics_list.append(crisp_topic)
-        else:
-            topics_list.append(fuzzy_topic)
+        topics_list.append(crisp_topic)
 
         # update surface
-        if not fuzzy_deformation:
-            surface = np.maximum(surface - crisp_topic, 0)
-        else:
-            surface = surface*(1-fuzzy_topic)
-
-    # create permutation for nodes (ordered by their influence)
-    tmp = [(-t.sum(),i) for i,t in enumerate(topics_list)]
-    tmp.sort()
-    P = [i for _,i in tmp]
+        surface = surface*(1-fuzzy_topic)
 
     # fill node-topic matrix
     topic_number = len(topics_list)
     T = np.zeros([n, topic_number], dtype=float) # node-topic matrix 
     for i in range(topic_number):
-        T[:,i] = topics_list[P[i]]
+        T[:,i] = topics_list[i]
 
     # visualize various information about the estiamted topics
     if visualize:
@@ -120,9 +134,25 @@ def find_topics_topicness(
 #=========================================================================================
 def store_topics(g:nx.DiGraph, topics:np.ndarray, output_directory:str, savefig=True, gradient_topic=True):
     """
+    Store topics passed in input, possibly with images representing the topics.
+
+    Extended Summary
+    ----------------
     This function stores the topics described by the array 'topics' inside the directory 'output_directory'.
-    Note that 'topics' must be an array with shape: [vertices number, topics number].
-    """
+    Note that 'topics' must be an array with shape: [keywords number, topics number].
+
+    Parameters
+    ----------
+    g : DiGraph
+        keywords co-occurrence graph.
+    topics : ndarray
+        keyword-topic matrix (hence, shape [keywords number, topics number]) describing the memebership of
+        each kewords w.r.t. a topic.
+    output_directory : str
+        Directory in which the topics will be stored.
+    savefig : bool
+        Whether the image generated from the topic sould also be stored, set to falso for better storing.
+     """
     vertex_count = g.number_of_nodes()
     topic_count = topics.shape[1]
 
@@ -155,21 +185,36 @@ def store_topics(g:nx.DiGraph, topics:np.ndarray, output_directory:str, savefig=
                 visualization.show_topics(g, topic_set, img_filename)
             f.writelines(keywords)
 
-def task1(start, end, parent_directory="topics"):
+def task1(start:int, end:int, output_directory:str="topics"):
     """
-    This function creates an output directory containing the computed topics (foreach year). 
-    This directory is named using the timestamp of when it is executed, and is placed inside 
-    'parent_directory' (which must already exists).
+    Execute Task 1 of the project.
+
+    Extended Summary
+    ----------------
+    This function creates an output directory containing the topics computed for each year. 
+
+    Parameters
+    ----------
+    start : int
+        first year from which estimate topics.
+    end : int
+        last year in which estimate topics.
+    output_directory : str
+        output directory to be created. This directory MUST NOT exist.
     """
     # load graph data into memory
     GraphsPerYear = ps.parseKeyword(start, end)
 
     # create output directory
-    datestr = datetime.datetime.now().isoformat().replace(":","_")
-    output_directory = os.path.join(parent_directory, datestr)
+    #datestr = datetime.datetime.now().isoformat().replace(":","_")
+    #output_directory = os.path.join(parent_directory, datestr)
+    if os.path.exists(output_directory):
+        print("Error: directory "+str(output_directory)+ " already exists!")
+        return
+
     topics_directory = os.path.join(output_directory, "topics")
-    os.mkdir(output_directory) # NOTE assuming this directory does not already exists, since it depends on the time
-    os.mkdir(topics_directory) 
+    os.mkdir(output_directory)
+    os.mkdir(topics_directory)
 
     # main loop for topic extraction, iterating over the years for topic extraction
     for year in range(start, end+1):
@@ -178,7 +223,7 @@ def task1(start, end, parent_directory="topics"):
         g:nx.DiGraph = GraphsPerYear[year]
         print("\extracting topics for year "+str(year)+" ...")
         print("keywords count: "+str(g.number_of_nodes()))
-        topics = find_topics_topicness(g, k=60, visualize=True)
+        topics = find_topics_topicness(g, visualize=False)
         topic_count = topics.shape[1]
         print("topics extracted.\nnumber of topics: "+str(topic_count))
 
@@ -191,4 +236,23 @@ def task1(start, end, parent_directory="topics"):
     
 # if this module is invoked, then solve task 1
 if __name__ == "__main__":
-    task1(2010,2010)
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description='Execute Task-1 of the Web&Social Information Extraction Project.')
+    parser.add_argument('outdir',  
+        metavar='<output-directory>', 
+        type=str,  
+        help="directory that will contain the output directory generated by the task. This directory MUST NOT exist.")
+    parser.add_argument('-s','--start', 
+        metavar='<start year>', 
+        type=int, 
+        required=True, 
+        help="starting year for tracking, must be >= 2000 and <= <end year>")
+    parser.add_argument('-e','--end', 
+        metavar='<end year>', 
+        type=int,
+        required=True,
+        help="ending year for tracking, must be >= <start year> and <= 2018")
+    args = parser.parse_args()
+    task1(args.start, args.end, args.outdir)

@@ -14,10 +14,28 @@ import misc
 
 def keyword_similarity(keyword1:str, keyword2:str, method="jaccard") -> float:
     """
+    Compute similarity between two keywords.
+
+    Extended Summary
+    ----------------
     This function computes a simple word similarity between keywords.
     The available methods are 'jaccard' and 'equal': in case of jaccard
     the jaccard similarity is used, in case of 'equal' then two words are 
-    similar only if they are the same. 
+    similar only if they are the same.
+
+    Parameters
+    ----------
+    keyword1 : str
+    keyword2 : str
+    method : str
+        method to use in order to compute the similarity. The available values are
+        'equal', which uses exact match, and 'jaccard', which uses the jaccard similarity
+        of the bag-of-words representation of keyword1 and keyword2.
+
+    Returns
+    -------
+    float (in [0,1])
+        similarity between keyword1 and keyword2
     """
     if method == "jaccard":
         wordbag1 = set(keyword1.split())
@@ -34,9 +52,31 @@ def create_topic_links(
     word_sim_method="jaccard",
     mode="full") -> list:
     """
-    This function returns a list of tuple representing a mapping between topics in T1 to topics in T2.
-    These tuples contain 3 elements (ti,tj, ms) with ti a topic in T1, tj a topic in Tj and ms the map 
-    strength between ti and tj.
+    Compute a map betweeen topics in a first keyword co-occurrence graph to a second one.
+
+    Parameters
+    ----------
+    g1: DiGraph
+        first keyword co-occurrence graph
+    g2: DiGraph
+        second keyword co-occurrence graph
+    T1: ndarray
+        keywords-topics matrix, storing membershio information between keywords in g1 to topics.
+    T2: ndarray
+        keywords-topics matrix, storing membershio information between keywords in g2 to topics.
+    mapping_method : str
+        method used to score the similarity between two topics. The available values are:
+        'chamfer', 'vector', 'jaccard'.
+    word_sim_method : str
+        method used to score the similiraty between two keywords. The available values are:
+        'jaccard', and 'equal'.
+
+    Returns
+    -------
+    List[( int, int, float)]
+        list of tuple representing a mapping between topics in T1 to topics in T2.
+        These tuples contain 3 elements: (ti,tj, ms) with ti a topic-id in T1, tj a topic-id in Tj 
+        and ms the map-strength between ti and tj.
     """
 
     n1 = g1.number_of_nodes()
@@ -116,7 +156,22 @@ def create_topic_links(
     return mapping
 
 # =============================================================================
-def candidate_chain(tdag:nx.DiGraph, s):
+def candidate_chain(tdag:nx.DiGraph, s:Tuple[int,int]) -> List[Tuple[int,int]]:
+    """
+    Compute a candidate topic-chain using a greedy approach.
+    
+    parameters
+    ----------
+    tdag : DiGraph 
+        full topic dag (with connection between also non-adjacent years)
+    s : 
+        (year, topic_id), starting node for the chain
+    
+    Returns
+    -------
+    List[(int,int)]
+        topic-chain containing nodes [(y0,t0) ... (yi,ti)]
+    """
     alpha = 1/3
     path = [s]
     sumscore = 0
@@ -144,8 +199,25 @@ def candidate_chain(tdag:nx.DiGraph, s):
             words = set().union(*[tdag.nodes[u]["topic"] for u in path])
             return score, path, words
 
-def chains_extraction(tdag, k=20):
-    '''
+def chains_extraction(tdag:nx.DiGraph, k:int = 20)->list:
+    """
+    Compute a set of k optimal topic-chains from full topic-DAG.
+    
+    Parameters
+    ----------
+    tdag : DiGraph
+        full topic-DAG
+    k : int
+        desired number of output topic-chains
+
+    Returns
+    -------
+    List[(flaot, list, set)]
+        list of tuples (score, chain, words), where score is the chains score, chain
+        is the actual chain as a list of nodes and words are the keywords in the chain.
+    """
+
+    '''REMOVEME
     tdag = tdag.copy()
     paths = []
     for i in tqdm.trange(k):
@@ -154,27 +226,37 @@ def chains_extraction(tdag, k=20):
         tdag.remove_nodes_from(longest_path)
     return paths
     '''
-    paths = []
+    chains = []
     for y,t in tqdm.tqdm(tdag):
         score, path, words = candidate_chain(tdag, s=(y,t))
-        paths.append( (score, path, words) )
+        chains.append( (score, path, words) )
 
-    top_paths = []
+    top_chains = []
     for _ in tqdm.tqdm(range(k)):
-        score, top_path, top_words = max(paths)
-        top_paths.append(top_path)
-        for i in range(len(paths)):
-            score, path, words = paths[i]
+        score, top_chain, top_words = max(chains)
+        top_chains.append(top_chain)
+        for i in range(len(chains)):
+            score, path, words = chains[i]
             s = len(top_words.intersection(words))/len(top_words.union(words))
-            paths[i] = score*(1-s), path, words
-
-    return top_paths
+            chains[i] = score*(1-s), path, words
+    return top_chains
 
 
 #========================================================================================
 def load_topics(topic_directory:str) -> Tuple[Dict[int, nx.DiGraph], Dict[int, np.ndarray]]:
     """
-    This function loads into memory the graphs and topics generated during task1.
+    Load into memory the graphs and topics generated during Task-1.
+
+    Parameters
+    ----------
+    topic_directory : str
+        directory containing the topic data.
+
+    Returns
+    -------
+    Dict[int, DiGraph], Dict[int, ndarray]
+        the first return value is a dictionary mapping years to the respective keyword co-occurrence graph,
+        while the second return value is a dictionary mapping years to the respective keywords-topics matrix.
     """
     graphs_per_year:Dict[int, nx.DiGraph] = dict()
     topics_per_year:Dict[int, np.ndarray]  = dict()
@@ -193,9 +275,17 @@ def load_topics(topic_directory:str) -> Tuple[Dict[int, nx.DiGraph], Dict[int, n
     print("topics loaded.")
     return graphs_per_year, topics_per_year
 
-def store_topics(topic_directory, fused_topics):
+def store_topics(topic_directory:str, fused_topics: List[Dict[str, int]]):
     """
-    This function stores the time-fused topics generated during task 2.
+    Store the time-fused topics generated during task 2.
+
+    Parameters
+    ----------
+    topic_directory : str
+        directory in which the fused topics will be stored.
+    fused_topics : list[dict(str,int)]
+        list containing the time-fused topics, which are represented through a
+        dictionary (the keys are the keywords and the values their frequencies).
     """
     # create directory for chains
     fused_topics_directory = os.path.join(topic_directory, "fused_topics")
@@ -218,15 +308,29 @@ def store_topics(topic_directory, fused_topics):
         plot.savefig(fname, dpi=300)
 
     # store
-    fname = os.path.join(fused_topics_directory, "time-fused-topics.png")
+    fname = os.path.join(fused_topics_directory, "time-fused-topics.txt")
     with open(fname, "w") as f:
         i = 0
         for topic in fused_topics:
-              for w, c in topic.items():
+            for w, c in topic.items():
                 f.write("T"+str(i)+"\t"+w+"\t"+str(c)+"\n")
             i += 1
 
-def store_chains(topic_directory, topic_chains, gperyear, tperyear):
+def store_chains(topic_directory:str, topic_chains:list, gperyear:dict, tperyear:dict):
+    """
+    Store the topic-chains in 'topic_chain' inside the topic directory 'topic_directory'.
+
+    Parameters
+    ----------
+    topic_directory : str
+        directory in which the topic-chains will be stored.
+    topic_chains : List[List[(int,int)]]
+        topic-chains, represented as a sequence of lists containing pairs of (year, topic-id).
+    gperyear : Dict[int,DiGraph]
+        dictionary mapping years to the respective keyword co-occurrence graph.
+    tperyear : Dict[int,ndarray]
+        dictionary mapping years to the respective keywords-topics matrix.
+    """
     chains_directory = os.path.join(topic_directory, "chains")
     if os.path.exists(chains_directory):
         import shutil
@@ -248,27 +352,28 @@ def store_chains(topic_directory, topic_chains, gperyear, tperyear):
 #========================================================================================
 
 def task2(
-    parent_folder:str="topics", 
-    topic_folder:str="last",
+    input_folder:str, 
     **kwargs):
+    """
+    Execute Task-2
+
+    Parameters
+    ----------
+    input_folder : str
+        folder that contains the topics generated during task-1.
+    """
 
     # get parameters
     topic_score = "chamfer" if "topic_score" not in kwargs else kwargs["topic_score"]
     word_similarity = "jaccard" if "word_similarity" not in kwargs else kwargs["word_similarity"]
     visualize = False if "visualize" not in kwargs else kwargs["visualize"]
-    chain_number = 0 if "chain_number" not in kwargs else kwargs["chain_number"]
+    chain_number = 20 if "chain_number" not in kwargs else kwargs["chain_number"]
     load_dag = False if "load_dag" not in kwargs else kwargs["load_dag"]
 
-    # solve output directory
-    if topic_folder is None:
-        topic_directory = os.path.abspath(parent_folder)
-    else:
-        parent_directory_absolute = os.path.abspath(parent_folder)
-        if topic_folder=="last":
-            topic_folder=max(os.listdir(parent_directory_absolute))
-        topic_directory = os.path.join(parent_directory_absolute, topic_folder)
 
     # load stored topics
+    input_directory = os.path.abspath(input_folder)
+    topic_directory = os.path.join(input_directory, "topics")
     gperyear, tperyear = load_topics(topic_directory)
     years:List[int] = [year for year in tperyear.keys()]
 
@@ -344,9 +449,9 @@ def task2(
     #----------------------------------------------------------------------
 
     # compute and store chains 
-    paths = chains_extraction(topic_DAG)
+    paths = chains_extraction(topic_DAG,k=chain_number)
     store_chains(
-        topic_directory=topic_directory,
+        topic_directory=input_directory,
         topic_chains=paths,
         gperyear=gperyear,
         tperyear=tperyear)
@@ -363,9 +468,17 @@ def task2(
         fused_topics.append(merged_keywords)
     
     # store topics
-    store_topics(topic_directory, fused_topics)
+    store_topics(input_directory, fused_topics)
 
 
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
-    task2(visualize=False, word_similarity="equal", load_dag=False)
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Execute Task-2 of the Web&Social Information Extraction Project. It computes the time-fused topics and stores them in the input directory.')
+    parser.add_argument('indir',
+        metavar='<input-directory>', 
+        type=str,  
+        help="directory containing the topics generated by task-1.")
+    args = parser.parse_args()
+    task2(input_folder=args.indir)

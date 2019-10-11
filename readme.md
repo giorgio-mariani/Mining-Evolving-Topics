@@ -3,21 +3,28 @@ Web and Social Information Extraction Project:
 This repository contains the source code of the *Web and Social Information Extraction*'s project. The problem statement of the project can be found in this [file](docs/project_proposal.pdf). 
 
 -----------------------------------------------------------
+Requirements
+------------
+The requirements necessary in order to run the code can be installed through pip using the command:
 
-**NOTE:** All the scripts in this repository must be called from inside the folder `src`!
-This is due to the use of relative paths.
+`pip install -r  requirements.txt`
+
+If conda is used instead, it is possible to create a suitable environment using:
+
+`conda env create -f environment.yml -n websocial_project`
+
 
 Task 1:
 -------
 To estimate the topics for each year between 2000 to 2018 run the command:
 
-`python task1.py`
+`python task1.py -s 2000 -e 2018 <output dir>`
 
 
 Task 2:
 -------
 To track the estimated topics through the time run:
 
-`python task2.py <topic-folder>`
+`python task2.py <input dir>`
 
-with `<topic-folder>` the directory containing the estimated topics (that is, the output of `python task1.py`).
+with `<input dir>` equal to the values of  `<output dir>` for task-1.

@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import networkx as nx
 import matplotlib
@@ -6,12 +8,27 @@ import tqdm
 from typing import Dict
 from typing import Tuple
 
-DATASET_LOC="../data/" # TODO use script location instead of relative path
+DATASET_LOC=os.path.join( os.path.dirname(os.path.abspath(__file__)),"../data/")
 DATA_COKEYWORDS="ds-1.tsv"
 DATA_COAUTHORS="ds-2.tsv"
 
 
 def parseAuthor(start:int, end:int) -> Dict[int, nx.DiGraph]:
+    """
+    Parse the input file containing the co-authorship information.
+
+    Parameters
+    ----------
+    start : int
+        first year from which start to parse the graph data
+    end : int 
+        last year in which parse the data
+
+    Returns
+    -------
+    Dict[int, DiGraph]
+        a dictionary mapping years in [start, end] to the respective co-authorship graph.
+    """
     VerticesPerYear = dict()
     EdgesPerYear = dict()
     with open(DATASET_LOC+DATA_COAUTHORS,'r',encoding="utf8") as f:
@@ -45,6 +62,29 @@ def parseAuthor(start:int, end:int) -> Dict[int, nx.DiGraph]:
     return graphsPerYear
 
 def parseKeyword(start:int, end:int, usepagerank=True) -> Dict[int, nx.DiGraph]:
+    """
+    Parse the input file containing the keywords co-occurrence information.
+
+    Extended Summary
+    ----------------
+    This function generates a dictionary mpping years to keywords graphs, the edges
+    are computed by summing the co-occurrence between two keywords. If usepagerank=True, 
+    then this is a weighted sum, using as weight the author's pagerank for the year.
+
+    Parameters
+    ----------
+    start : int
+        first year from which start to parse the graph data
+    end : int 
+        last year in which parse the data
+    usepagerank : bool
+        whether the edge-weights should also take into consideration the co-authorship graphs pagerank.
+
+    Returns
+    -------
+    Dict[int, DiGraph]
+        a dictionary mapping years in [start, end] to the respective keyword co-occurrence graph.
+    """
     if usepagerank:
          # get the author graphs and compute their pageranks
         authorsGraphs = parseAuthor(start=start, end=end)
@@ -121,30 +161,3 @@ def parseKeyword(start:int, end:int, usepagerank=True) -> Dict[int, nx.DiGraph]:
             ordering='sorted',
             label_attribute='name')
     return GraphsPerYear
-
-def _analysis(G:dict):
-    years = list(G.keys())
-    years.sort()
-    for year in years:
-        graph:nx.Graph = G[year]
-        n = graph.number_of_nodes()
-        m = graph.number_of_edges()
-        c = 2 if graph.is_directed() else 1
-        d = c*m/(n*n)
-        print("year "+str(year)+":"+
-            "\t|V|="+str(n)+"\t|E|="+str(m)+"\td="+str(d))
-
-def _weights_comparison():
-    graph_pagerank = parseKeyword(2018, 2018)[2018]
-    graph = parseKeyword(2018, 2018, usepagerank=False)[2018]
-
-    weights_pagerank = graph_pagerank.edges.data("weight")
-    weights = graph.edges.data("weight")
-
-    a_pagerank = np.array([w[2] for w in weights_pagerank])
-    a = np.array([w[2] for w in weights])
-    import visualization
-    visualization.KernelDensityEstimation(a_pagerank)
-    visualization.KernelDensityEstimation(a)
-
-
