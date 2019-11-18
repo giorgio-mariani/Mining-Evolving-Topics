@@ -1,6 +1,9 @@
-Web and Social Information Extraction Project:
-==============================================
-This repository contains the source code of the *Web and Social Information Extraction*'s project. The problem statement of the project can be found in this [file](docs/project_proposal.pdf). The report for the project can be found [here](docs/report.pdf)
+
+Mining Evolving Topics
+=======================
+Web and Social Information Extraction Project
+----------------------------------------------
+This repository contains the source code of the *Web and Social Information Extraction* course's project: **Mining Evolving Topics***. The problem statement for the project can be found in this [file](docs/project_proposal.pdf). The report for the project can be found [here](docs/report.pdf)
 
 -----------------------------------------------------------
 Requirements
